@@ -1,0 +1,5 @@
+steps:
+uv venv - create environment
+source .venv/bin/activate
+#install dependency packages. 
+uv pip install -r requirements.txt

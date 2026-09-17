@@ -1,0 +1,37 @@
+Tavily - is a search model
+Tavily and BeautifulSoup are tools
+
+
+
+
+File structure (considering langGraph )- 
+multi-agent-research-backend/
+│
+├── app/
+│   ├── main.py
+│   │
+│   ├── agents/
+│   │   ├── planner.py
+│   │   ├── researcher.py
+│   │   ├── fact_checker.py
+│   │   ├── summarizer.py
+│   │   └── report_generator.py
+│   │
+│   ├── graph/
+│   │   ├── state.py
+│   │   └── workflow.py
+│   │
+│   ├── tools/
+│   │   ├── web_search.py
+│   │   └── scraper.py
+│   │
+│   ├── schemas/
+│   │   └── research.py
+│   │
+│   └── api/
+│       └── research.py
+│
+├── tests/
+├── .env.example
+├── requirements.txt
+└── README.md

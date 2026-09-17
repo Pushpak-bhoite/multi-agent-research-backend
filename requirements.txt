@@ -1,0 +1,70 @@
+# ==========================================
+# API / Backend
+# ==========================================
+
+# Web API framework
+fastapi==0.115.6
+
+# ASGI server for FastAPI
+uvicorn[standard]==0.34.0
+
+
+# ==========================================
+# Multi-Agent / LLM
+# ==========================================
+
+# LLM application framework
+langchain==0.3.14
+
+# Multi-agent workflow orchestration
+langgraph==0.2.62
+
+# Google Gemini integration
+langchain-google-genai==2.0.8
+
+# Token counting
+tiktoken==0.8.0
+
+
+# ==========================================
+# Web Search & Scraping
+# ==========================================
+
+# AI-powered web search
+tavily-python==0.5.0
+
+# HTML parsing
+beautifulsoup4==4.12.3
+
+# Extract clean text from webpages/articles
+trafilatura==1.12.2
+
+# Fast HTML/XML parser used by some scraping libraries
+lxml==5.3.0
+
+
+# ==========================================
+# HTTP Requests
+# ==========================================
+
+# Async HTTP client
+httpx==0.28.1
+
+
+# ==========================================
+# Data Validation & Configuration
+# ==========================================
+
+# Data validation
+pydantic==2.10.5
+
+# Load environment variables from .env
+python-dotenv==1.0.1
+
+
+# ==========================================
+# Terminal / Logging
+# ==========================================
+
+# Better terminal output and debugging
+rich==13.9.4

@@ -14,7 +14,7 @@ tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 @tool # to make this function tool use this decorator
 def web_search(query: str) -> str : 
     """Search the web for recent and reliable information on any topic. Returns Titles, URLs and snippets  """
-    results = tavily.search(query=query, max_results=3)
+    results = tavily.search(query=query, max_results=5)
     out = []
     
     for r in results["results"]:
@@ -61,4 +61,4 @@ def scrape_url(url: str) -> str:
     title = soup.title.string.strip() if soup.title and soup.title.string else "Untitled"
     return f"Title: {title}\nURL: {url}\n\n{text}"
     
-print(scrape_url.invoke("https://edition.cnn.com/world/middleeast/israel"))
+# print(scrape_url.invoke("https://edition.cnn.com/world/middleeast/israel"))

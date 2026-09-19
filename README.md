@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-Multi--agent-1C3C3C)](https://www.langchain.com/)
-[![Google Gemini](https://img.shields.io/badge/LLM-Gemini%202.5%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![OpenAI](https://img.shields.io/badge/LLM-GPT--4o--mini-412991?logo=openai&logoColor=white)](https://platform.openai.com/)
 [![Tavily](https://img.shields.io/badge/Search-Tavily-111827)](https://tavily.com/)
 
 ## Live Demo
@@ -14,6 +14,13 @@ Try the deployed application here:
 **[Open Multi-Agent Research Assistant →](https://multi-agent-research-frontend.bhoitepushpak6.workers.dev)**
 
 The frontend provides a simple interface for submitting a research topic and viewing the generated research output.
+
+## Related Repository
+
+This repository contains the research pipeline and backend logic. The user interface is maintained separately:
+
+- **Frontend:** [multi-agent-research-frontend](https://github.com/Pushpak-bhoite/multi-agent-research-frontend)
+- **Backend:** [multi-agent-research-backend](https://github.com/Pushpak-bhoite/multi-agent-research-backend) *(this repository)*
 
 ## Overview
 
@@ -38,10 +45,10 @@ Search Agent (Tavily)
 Reader Agent (HTTPX + BeautifulSoup)
       │
       ▼
-Writer Chain (Gemini)
+Writer Chain (GPT-4o-mini)
       │
       ▼
-Critic Chain (Gemini)
+Critic Chain (GPT-4o-mini)
       │
       ▼
 Research report + feedback
@@ -74,7 +81,7 @@ Research report + feedback
 - **Python**
 - **LangChain** for agents, prompts, and output parsing
 - **LangGraph** for multi-agent workflow foundations
-- **Google Gemini 2.5 Flash** as the language model
+- **OpenAI GPT-4o-mini** as the language model
 - **Tavily** for web search
 - **HTTPX** for HTTP requests
 - **BeautifulSoup** for HTML parsing and readable content extraction
@@ -129,11 +136,11 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
 TAVILY_API_KEY=your_tavily_api_key
 ```
 
-Get credentials from [Google AI Studio](https://aistudio.google.com/) and [Tavily](https://app.tavily.com/). Never commit your `.env` file or expose API keys in frontend code.
+Get credentials from [OpenAI Platform](https://platform.openai.com/) and [Tavily](https://app.tavily.com/). Never commit your `.env` file or expose API keys in frontend code.
 
 ### 5. Run the pipeline
 
@@ -186,7 +193,7 @@ The scraper validates URL schemes, follows redirects, handles HTTP/request error
 
 ## Security Notes
 
-- Keep `GEMINI_API_KEY` and `TAVILY_API_KEY` private.
+- Keep `OPENAI_API_KEY` and `TAVILY_API_KEY` private.
 - Use `.env` only for local development and configure secrets through the deployment platform in production.
 - Treat scraped web content as untrusted input.
 - Review generated reports before using them for high-stakes decisions.

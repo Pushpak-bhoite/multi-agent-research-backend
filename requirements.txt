@@ -19,8 +19,8 @@ langchain==1.4.1
 # Multi-agent workflow orchestration
 langgraph==1.2.11
 
-# Google Gemini integration
-langchain-google-genai==4.4.0
+# OpenAI integration
+langchain-openai==1.6.2
 
 # Token counting
 tiktoken==0.14.0

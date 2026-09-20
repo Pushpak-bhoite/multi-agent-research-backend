@@ -6,7 +6,6 @@ from tools import web_search, scrape_url
 from dotenv import load_dotenv
 import os
 
-
 load_dotenv()
 
 # model setup
@@ -51,10 +50,7 @@ Be detailed, factual and professional."""),
 
 writer_chain = writer_prompt | llm | StrOutputParser()
 
-
-
 #critic_chain 
-
 critic_prompt = ChatPromptTemplate.from_messages([
      ("system", "You are a sharp and constructive research critic. Be honest and specific."),
     ("human", """Review the research report below and evaluate it strictly.

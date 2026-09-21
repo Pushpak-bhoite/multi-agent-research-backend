@@ -24,8 +24,6 @@ def web_search(query: str) -> str :
 
 # print(web_search.invoke("what are the recent news of war"))
      
-
-
 @tool # we dont need this much big code, we can reduce code for understanding. it's ai given code
 def scrape_url(url: str) -> str:
     """Fetch a web page and return its readable text content. Use after web_search to read a promising URL in full."""

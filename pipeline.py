@@ -9,7 +9,6 @@ def _text(message) -> str:
         return "".join(part.get("text", "") for part in content if isinstance(part, dict))
     return content
 
-
 def run_research_pipeline(topic: str) -> dict:
 
     state = {"topic": topic}
@@ -20,10 +19,11 @@ def run_research_pipeline(topic: str) -> dict:
         "messages": [("user", f"Find recent, reliable and detailed information about: {topic}")]
     })
 
+    print("\nsearch results:=====>\n", search_result)
     state["search_results"] = _text(search_result['messages'][-1])  # [-1] becoz we get the ai res at last -1 position
+    print("\nstate['search_result']:====>\n", state["search_results"])
 
-    print("\nsearch results:\n", state['search_results'])
-
+# **** Mostly this agent picks only one link and gives tavily for scrapping.  
     print("step - 2 ========= Reader agent is scraping top resources =============")
     reader_agent = build_reader_agent()
     reader_result = reader_agent.invoke({
@@ -34,6 +34,8 @@ def run_research_pipeline(topic: str) -> dict:
                       )]
     })
 
+    print("\nreader_result:=====>\n", reader_result)
+    
     state['scraped_content'] = _text(reader_result['messages'][-1])
 
     print("\nscraped content:\n", state['scraped_content'])
@@ -61,7 +63,6 @@ def run_research_pipeline(topic: str) -> dict:
     print("\n critic report \n", state['feedback'])
 
     return state  # returned so the API can send it to the frontend
-
 
 if __name__ == "__main__":
     topic = input("\n Please enter a research topic : ")

@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ipykernel>=7.3.0",
+    "ipython>=9.17.1",
     "langchain>=0.3.30",
     "langgraph>=1.0.1",
     "python-dotenv>=1.2.3",
+    "rich>=15.0.0",
 ]

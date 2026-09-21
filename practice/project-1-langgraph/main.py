@@ -29,7 +29,6 @@ def classify_message(state: State):
     last_message = state["messages"][-1]
     classifier_llm = llm.with_structured_output(MessageClassifier)
     
-
 def router(state: State):
     last_message = state["messages"][-1]
 

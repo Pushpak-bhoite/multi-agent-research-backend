@@ -1,3 +1,4 @@
+#1. Main thing to understand here is 'state', in langchain we are managing by ourselve but if you notice here, langgraph manages that state(context)
 import logging
 import os
 from fastapi import FastAPI, HTTPException
@@ -33,3 +34,8 @@ def research(req: ResearchRequest):
         # without this the UI only sees a bare 500 for things like Gemini quota errors
         logger.exception("Research pipeline failed for topic %r", req.topic)
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {str(exc)[:300]}")
+
+
+
+
+

@@ -12,18 +12,16 @@ def _text(message) -> str:
 def run_research_pipeline(topic: str) -> dict:
 
     state = {"topic": topic}
-    print("stp - 1 ==========search agent working======= ")
+    
+    print("==================== step - 1 search agent working ==================  ")
 
     search_agent = build_search_agent()
     search_result = search_agent.invoke({
         "messages": [("user", f"Find recent, reliable and detailed information about: {topic}")]
     })
-
-    print("\nsearch results:=====>\n", search_result)
+    print("\nsearch results:----------------->\n", search_result)
     state["search_results"] = _text(search_result['messages'][-1])  # [-1] becoz we get the ai res at last -1 position
-    print("\nstate['search_result']:====>\n", state["search_results"])
 
-# **** Mostly this agent picks only one link and gives tavily for scrapping.  
     print("step - 2 ========= Reader agent is scraping top resources =============")
     reader_agent = build_reader_agent()
     reader_result = reader_agent.invoke({
@@ -33,15 +31,10 @@ def run_research_pipeline(topic: str) -> dict:
                       f"Search Results:\n{state['search_results'][:800]}"  # Only send first 800 chars becoz those only contains urls
                       )]
     })
-
-    print("\nreader_result:=====>\n", reader_result)
-    
+    print("\nreader_result:----------->\n", reader_result)
     state['scraped_content'] = _text(reader_result['messages'][-1])
 
-    print("\nscraped content:\n", state['scraped_content'])
-
-    # step - 3
-    print("==========step 3 - Writer is drafting the report ==========")
+    print("========== step 3 - Writer is drafting the report ==========")
     research_combined = (
         f"SEARCH RESULTS: \n {state['search_results']}"
         f"DETAILED SCRAPPED CONTENT: \n {state['scraped_content']}"
@@ -51,16 +44,13 @@ def run_research_pipeline(topic: str) -> dict:
         "topic": topic,
         "research": research_combined
     })
+    print("\n Final Report ----------------->\n", state["report"])
 
-    print("\n Final Report\n", state["report"])
-
-    print("==========step - 4 critic is reviewing the report =============")
-
+    print("==================== step - 4 critic is reviewing the report ====================")
     state["feedback"] = critic_chain.invoke({
         "report": state['report']
     })
-
-    print("\n critic report \n", state['feedback'])
+    print("\n critic report-----------------> \n", state['feedback'])
 
     return state  # returned so the API can send it to the frontend
 

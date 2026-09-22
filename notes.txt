@@ -35,3 +35,36 @@ multi-agent-research-backend/
 ├── .env.example
 ├── requirements.txt
 └── README.md
+
+
+
+
+
+
+What you can now say in the interview
+
+You have three different technologies doing three different jobs:
+
+Pandas
+
+"I used Pandas to preprocess the structured search results, remove duplicate URLs, sort the results and select the top sources."
+
+NLP
+
+"I implemented an NLP-based relevance layer using TF-IDF and cosine similarity. It converts the research topic and scraped documents into vectors and calculates their similarity, allowing us to prioritize the most relevant documents."
+
+LangGraph
+
+"I used LangGraph to orchestrate the complete multi-agent workflow and maintain shared state between the search, reader, NLP, writer and critic nodes."
+
+And importantly, don't say TF-IDF is an LLM or AI model.
+
+It's a classical NLP technique:
+
+TF-IDF
+   ↓
+text → numerical representation
+
+Cosine Similarity
+   ↓
+two vectors → similarity score

@@ -1,3 +1,10 @@
+# So the accurate interview statement is:
+# "Pandas was used for preprocessing the structured search results. I used it to clean and deduplicate results, 
+# filter low-relevance sources, and select the most relevant results before passing them to the downstream agent.
+# This also helps reduce unnecessary context being sent to the LLM."
+
+
+
 from typing import TypedDict
 from rich import print
 from langgraph.graph import StateGraph, START, END
@@ -13,6 +20,7 @@ class ResearchState(TypedDict):
     topic: str
     search_results: str
     scraped_content: str
+    relevant_content: list
     report: str
     feedback: str
 
@@ -44,9 +52,7 @@ def search_node(state: ResearchState):
         ]
     })
 
-    print(" ================ search_result ===============>", search_result)
-    print(" ================ search_result[messages][-1] ===============>", search_result["messages"][-1])
-    
+    print(" ================ search_result ===============>", search_result)    
     return {
         "search_results": _text(
             search_result["messages"][-1]
@@ -69,9 +75,7 @@ def reader_node(state: ResearchState):
             )
         ]
     })
-    print("================ reader_result ===============>", reader_result)
-    print("================ reader_result[messages][-1] ===============>", reader_result["messages"][-1])
-    
+    print("================ reader_result ===============>", reader_result)    
     return {
         "scraped_content": _text(
             reader_result["messages"][-1]

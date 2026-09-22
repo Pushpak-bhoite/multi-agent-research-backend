@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from pipeline_1_basic import run_research_pipeline
+from pipeline_2_langgraph import run_research_pipeline
 load_dotenv()
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Multi-Agent Research API")

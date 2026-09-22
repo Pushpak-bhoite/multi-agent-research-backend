@@ -9,7 +9,9 @@ from pipeline import run_research_pipeline
 load_dotenv()
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Multi-Agent Research API")
-CORS_ORIGIN = os.getenv("CORS_ORIGIN", "").split(",")
+# strip so "a.com, b.com" does not produce an origin with a leading space that never matches
+CORS_ORIGIN = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGIN", "").split(",") if o.strip()]
+logger.info("CORS allowed origins: %s", CORS_ORIGIN)
 # browser blocks the frontend's requests without this
 app.add_middleware(
     CORSMiddleware,

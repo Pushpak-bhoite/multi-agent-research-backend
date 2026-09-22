@@ -68,3 +68,19 @@ text → numerical representation
 Cosine Similarity
    ↓
 two vectors → similarity score
+
+========== NLP =============
+we could do this as well. after scraping all data we could give it to this model to create vector embedding and then we apply similarity search by cosine_similarity. it would have saved our tokens -> 
+->and then give that data to writer agent. (this is helpful if we were scraping too much data)
+
+* "all-MiniLM-L6-v2" → actual pretrained embedding model
+
+This is a pretrained NLP model hosted on Hugging Face under the Sentence Transformers organization.
+
+Text
+ ↓
+Embedding model
+ ↓
+Vector / embedding
+ ↓
+Relevant / irrelevant document

@@ -6,6 +6,7 @@
 
 
 from typing import TypedDict
+import re
 from rich import print
 from langgraph.graph import StateGraph, START, END
 
@@ -21,8 +22,12 @@ class ResearchState(TypedDict):
     search_results: str
     scraped_content: str
     relevant_content: list
+    sources: list
     report: str
     feedback: str
+
+# matches the "Title: / URL:" blocks that web_search emits
+_SOURCE = re.compile(r"Title: (.+)\nURL: (\S+)")
 
 def _text(message) -> str:
     content = message.content
@@ -52,11 +57,22 @@ def search_node(state: ResearchState):
         ]
     })
 
-    print(" ================ search_result ===============>", search_result)    
+    print(" ================ search_result ===============>", search_result)
+
+    # scan every message: the tool output holds the URLs, the LLM summary often drops them
+    joined = "\n".join(
+        m.content for m in search_result["messages"] if isinstance(m.content, str)
+    )
+    sources = list({
+        url: {"title": title.strip(), "url": url}
+        for title, url in _SOURCE.findall(joined)
+    }.values())
+
     return {
         "search_results": _text(
             search_result["messages"][-1]
-        )
+        ),
+        "sources": sources
     }
 
 def reader_node(state: ResearchState):
@@ -127,6 +143,17 @@ graph.add_edge("critic", END)
 
 # Compile
 research_graph = graph.compile()
+
+
+def run_research_pipeline(topic: str) -> dict:
+    result = research_graph.invoke({"topic": topic})
+    # scraped_content is tens of thousands of chars, so it stays out of the response
+    return {
+        "topic": topic,
+        "report": result["report"],
+        "feedback": result["feedback"],
+        "sources": result.get("sources", []),
+    }
 
 if __name__ == "__main__":
 

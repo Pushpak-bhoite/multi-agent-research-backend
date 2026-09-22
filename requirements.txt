@@ -68,3 +68,10 @@ python-dotenv==1.2.3
 
 # Better terminal output and debugging
 rich==15.0.0
+
+
+# Data analysis and manipulation
+pandas==3.0.6
+
+# NLP 
+scikit-learn==1.9.1

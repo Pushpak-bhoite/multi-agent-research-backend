@@ -7,22 +7,72 @@ from tavily import TavilyClient
 import os
 from dotenv import load_dotenv
 from rich import print
+import pandas as pd
+
 load_dotenv()
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-@tool # to make this function tool use this decorator
-def web_search(query: str) -> str : 
-    """Search the web for recent and reliable information on any topic. Returns Titles, URLs and snippets  """
-    results = tavily.search(query=query, max_results=5)
-    out = []
+# ### This is without pandas, we are manually preparing data.
+# @tool # to make this function tool use this decorator
+# def web_search(query: str) -> str : 
+#     """Search the web for recent and reliable information on any topic. Returns Titles, URLs and snippets  """
+#     results = tavily.search(query=query, max_results=5)
+#     out = []
     
-    for r in results["results"]:
-        out.append(f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['content'][:300]}") # content only 300 lines as we gonna retrive more data with BeautifulSoup
+#     for r in results["results"]:
+#         out.append(f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['content'][:300]}") # content only 300 lines as we gonna retrive more data with BeautifulSoup
     
-    return "\n-----\n".join(out) 
+#     return "\n-----\n".join(out) 
 
-# print(web_search.invoke("what are the recent news of war"))
+# **** Now with pandas version i dont need to limit description as well.
+
+@tool
+def web_search(query: str) -> str:
+    """Search the web for recent and reliable information on any topic.
+    Returns cleaned and relevant titles, URLs and snippets.
+    """
+
+    results = tavily.search(
+        query=query,
+        max_results=5
+    )
+    
+    # ============ Pandas (dataframe) Pipeline ==============
+    print("tavily results ==========>", results)
+    # Convert Tavily results into a DataFrame
+    df = pd.DataFrame(results["results"])
+    print("df===========>\n", df)
+    # Remove duplicate URLs
+    df = df.drop_duplicates(subset=["url"])
+
+    # Remove results without URLs
+    df = df.dropna(subset=["url"])
+
+    # Sort by Tavily relevance score if available
+    if "score" in df.columns:
+        df = df.sort_values(
+            by="score",
+            ascending=False
+        )
+
+    # Keep only top 3 useful results
+    df = df.head(3)
+
+    # Convert the cleaned results back into text
+    out = []
+
+    for _, row in df.iterrows():
+
+        out.append(
+            f"Title: {row['title']}\n"
+            f"URL: {row['url']}\n"
+            f"Snippet: {str(row['content'])[:300]}"
+        )
+    print("out=======>", out)
+    return "\n-----\n".join(out)
+
+print(web_search.invoke(" Impact of ai on jobs in 2026 "))
      
 @tool # we dont need this much big code, we can reduce code for understanding. it's ai given code
 def scrape_url(url: str) -> str:

@@ -51,9 +51,7 @@ def search_node(state: ResearchState):
         ]
     })
 
-    print(" ================ search_result ===============>", search_result)
-    print(" ================ search_result[messages][-1] ===============>", search_result["messages"][-1])
-    
+    print(" ================ search_result ===============>", search_result)    
     return {
         "search_results": _text(
             search_result["messages"][-1]
@@ -76,9 +74,7 @@ def reader_node(state: ResearchState):
             )
         ]
     })
-    print("================ reader_result ===============>", reader_result)
-    print("================ reader_result[messages][-1] ===============>", reader_result["messages"][-1])
-    
+    print("================ reader_result ===============>", reader_result)    
     return {
         "scraped_content": _text(
             reader_result["messages"][-1]

@@ -1,7 +1,7 @@
 Tavily - is a search model
 Tavily and BeautifulSoup are tools
 
-
+Basically pandas and NLP pipeline increased too much accuracy of results. even i compared critic score with previous version and this version 
 
 
 File structure (considering langGraph )- 

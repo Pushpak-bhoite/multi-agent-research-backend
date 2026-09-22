@@ -22,7 +22,8 @@ def run_research_pipeline(topic: str) -> dict:
     print("\nsearch results:----------------->\n", search_result)
     state["search_results"] = _text(search_result['messages'][-1])  # [-1] becoz we get the ai res at last -1 position
 
-    print("step - 2 ========= Reader agent is scraping top resources =============")
+
+    print("================== step - 2 Reader agent is scraping top resources =============")
     reader_agent = build_reader_agent()
     reader_result = reader_agent.invoke({
         "messages": [("user",
@@ -34,7 +35,9 @@ def run_research_pipeline(topic: str) -> dict:
     print("\nreader_result:----------->\n", reader_result)
     state['scraped_content'] = _text(reader_result['messages'][-1])
 
-    print("========== step 3 - Writer is drafting the report ==========")
+
+
+    print("====================== step 3 - Writer is drafting the report ==================")
     research_combined = (
         f"SEARCH RESULTS: \n {state['search_results']}"
         f"DETAILED SCRAPPED CONTENT: \n {state['scraped_content']}"
@@ -45,6 +48,7 @@ def run_research_pipeline(topic: str) -> dict:
         "research": research_combined
     })
     print("\n Final Report ----------------->\n", state["report"])
+
 
     print("==================== step - 4 critic is reviewing the report ====================")
     state["feedback"] = critic_chain.invoke({

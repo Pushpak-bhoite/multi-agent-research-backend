@@ -84,3 +84,20 @@ Embedding model
 Vector / embedding
  ↓
 Relevant / irrelevant document
+
+
+===================================================
+|                      | TF-IDF vectorization                  | Embedding                           |
+| -------------------- | ------------------------------------- | ----------------------------------- |
+| Input                | Text                                  | Text                                |
+| Output               | Vector                                | Vector                              |
+| Main idea            | Word importance                       | Meaning/semantics                   |
+| Created by           | Statistical algorithm                 | Neural model                        |
+| Understands meaning? | ❌ Not really                          | ✅ Better                            |
+| Example              | "car" and "automobile" look different | "car" and "automobile" can be close |
+| Vector type          | Sparse                                | Dense                               |
+| Example tool         | `TfidfVectorizer`                     | `SentenceTransformer`               |
+
+
+==========================================================
+*** all-MiniLM-L6-v2 - created by microsoft, 2 GB. - so instead of TF-IDF we could use this model. bt too much space and RAM required

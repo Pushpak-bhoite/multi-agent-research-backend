@@ -1,14 +1,20 @@
+# So the accurate interview statement is:
+# "Pandas was used for preprocessing the structured search results. I used it to clean and deduplicate results, 
+# filter low-relevance sources, and select the most relevant results before passing them to the downstream agent.
+# This also helps reduce unnecessary context being sent to the LLM."
+
 from langchain.tools import tool
 import httpx #its alternative for both Request and aiohttps
 from urllib.parse import urlparse
-MAX_CHARS = 3000 
+
 from bs4 import BeautifulSoup
 from tavily import TavilyClient
 import os
 from dotenv import load_dotenv
 from rich import print
 import pandas as pd
-
+MAX_CHARS = 3000 
+SEARCH_RESULTS=5
 load_dotenv()
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -35,7 +41,7 @@ def web_search(query: str) -> str:
 
     results = tavily.search(
         query=query,
-        max_results=5
+        max_results=SEARCH_RESULTS
     )
     
     # ============ Pandas (dataframe) Pipeline ==============

@@ -49,7 +49,6 @@ def run_research_pipeline(topic: str) -> dict:
     })
     print("\n Final Report ----------------->\n", state["report"])
 
-
     print("==================== step - 4 critic is reviewing the report ====================")
     state["feedback"] = critic_chain.invoke({
         "report": state['report']

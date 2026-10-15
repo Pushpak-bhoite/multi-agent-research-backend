@@ -75,3 +75,10 @@ pandas==3.0.6
 
 # NLP 
 scikit-learn==1.9.1
+
+# ==========================================
+# MCP (Model Context Protocol)
+# ==========================================
+
+# MCP SDK + CLI tooling (mcp dev / mcp install)
+mcp[cli]==2.3.0

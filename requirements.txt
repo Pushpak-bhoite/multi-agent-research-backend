@@ -82,3 +82,11 @@ scikit-learn==1.9.1
 
 # MCP SDK + CLI tooling (mcp dev / mcp install)
 mcp[cli]==2.3.0
+
+
+# ==========================================
+# Google Drive / OAuth
+# ==========================================
+
+# OAuth 2.0 consent flow for Google Drive access tokens
+google-auth-oauthlib==1.2.2

@@ -1,62 +1,166 @@
+
+# pipeline_4_MCP.py
+
+import asyncio
 from rich import print
-from agents import build_reader_agent, build_search_agent, writer_chain, critic_chain
+
+from agents import (
+    build_reader_agent,
+    build_search_agent,
+    writer_chain,
+    critic_chain,
+)
+
+from drive_mcp import (
+    find_existing_report,
+    read_existing_report,
+    save_report,
+)
 
 
 def _text(message) -> str:
-    """Gemini can return content as a list of blocks instead of a plain string."""
-    content = message.content
-    if isinstance(content, list):
-        return "".join(part.get("text", "") for part in content if isinstance(part, dict))
-    return content
+    """Extract text from an agent message."""
 
-def run_research_pipeline(topic: str) -> dict:
+    content = getattr(message, "content", message)
+
+    if isinstance(content, list):
+        return "".join(
+            part.get("text", "")
+            for part in content
+            if isinstance(part, dict)
+        )
+
+    return str(content)
+
+
+async def run_research_pipeline(topic: str, session) -> dict:
+    print(f"\nResearch topic: {topic}")
+
+    # STEP 1: Check Drive before running any research agents.
+    print("Checking Google Drive...")
+
+    existing = await find_existing_report(session, topic)
+
+    if existing:
+        print(f"Found existing report: {existing.get('title')}")
+
+        report = await read_existing_report(
+            session,
+            existing["id"],
+        )
+
+        return {
+            "topic": topic,
+            "report": report,
+            "source": "google_drive",
+            "drive_url": existing.get("viewUrl"),
+        }
+
+    print("No existing report found. Starting research...")
 
     state = {"topic": topic}
-    
-    print("==================== step - 1 search agent working ==================  ")
 
+    # STEP 2: Search agent
     search_agent = build_search_agent()
+
     search_result = search_agent.invoke({
-        "messages": [("user", f"Find recent, reliable and detailed information about: {topic}")]
+        "messages": [
+            (
+                "user",
+                f"Find recent, reliable and detailed information about: {topic}",
+            )
+        ]
     })
-    print("\nsearch results:----------------->\n", search_result)
-    state["search_results"] = _text(search_result['messages'][-1])  # [-1] becoz we get the ai res at last -1 position
 
-
-    print("================== step - 2 Reader agent is scraping top resources =============")
-    reader_agent = build_reader_agent()
-    reader_result = reader_agent.invoke({
-        "messages": [("user",
-                      f"Based on the following search results about '{topic},"
-                      f"pick the most relevant URL and scrape it for deeper content.\n\n"
-                      f"Search Results:\n{state['search_results'][:800]}"  # Only send first 800 chars becoz those only contains urls
-                      )]
-    })
-    print("\nreader_result:----------->\n", reader_result)
-    state['scraped_content'] = _text(reader_result['messages'][-1])
-
-
-
-    print("====================== step 3 - Writer is drafting the report ==================")
-    research_combined = (
-        f"SEARCH RESULTS: \n {state['search_results']}"
-        f"DETAILED SCRAPPED CONTENT: \n {state['scraped_content']}"
+    state["search_results"] = _text(
+        search_result["messages"][-1]
     )
 
-    state["report"] = writer_chain.invoke({
+    # STEP 3: Reader agent
+    reader_agent = build_reader_agent()
+
+    reader_result = reader_agent.invoke({
+        "messages": [
+            (
+                "user",
+                f"Research '{topic}' using these search results:\n"
+                f"{state['search_results'][:800]}",
+            )
+        ]
+    })
+
+    state["scraped_content"] = _text(
+        reader_result["messages"][-1]
+    )
+
+    # STEP 4: Writer generates the report
+    research = (
+        f"SEARCH RESULTS:\n{state['search_results']}\n\n"
+        f"SCRAPED CONTENT:\n{state['scraped_content']}"
+    )
+
+    report_result = writer_chain.invoke({
         "topic": topic,
-        "research": research_combined
+        "research": research,
     })
-    print("\n Final Report ----------------->\n", state["report"])
 
-    print("==================== step - 4 critic is reviewing the report ====================")
+    state["report"] = _text(report_result)
+
+    # STEP 5: Critic reviews the report
     state["feedback"] = critic_chain.invoke({
-        "report": state['report']
+        "report": state["report"],
     })
-    print("\n critic report-----------------> \n", state['feedback'])
 
-    return state  # returned so the API can send it to the frontend
+    # STEP 6: Save the generated report to Drive
+    saved_file = await save_report(
+        session=session,
+        topic=topic,
+        report=state["report"],
+    )
+
+    state["source"] = "generated"
+    state["drive_url"] = saved_file.get("url")
+
+    print(f"Report saved: {saved_file.get('filename')}")
+    print(f"Drive URL: {state['drive_url']}")
+
+    return state
+
+
+# ===================================================================================
+
+import os
+
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+from google_auth import get_access_token
+
+async def main():
+    topic = input("Enter research topic: ").strip()
+
+    access_token = get_access_token()
+    if not access_token:
+        raise RuntimeError(
+            "Set GOOGLE_ACCESS_TOKEN using your Google OAuth flow."
+        )
+
+    server_url = "https://drivemcp.googleapis.com/mcp/v1"
+
+    async with streamablehttp_client(
+        server_url,
+        headers={"Authorization": f"Bearer {access_token}"},
+    ) as (read_stream, write_stream, _):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+
+            result = await run_research_pipeline(topic, session)
+
+            print("\n========== REPORT ==========\n")
+            print(result["report"])
+
+            print("\nSource:", result["source"])
+            print("Drive URL:", result.get("drive_url"))
+
 
 if __name__ == "__main__":
-    topic = input("\n Please enter a research topic : ")
-    run_research_pipeline(topic)
+    asyncio.run(main())

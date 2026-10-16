@@ -78,7 +78,7 @@ def web_search(query: str) -> str:
     print("out=======>", out)
     return "\n-----\n".join(out)
 
-print(web_search.invoke(" Impact of ai on jobs in 2026 "))
+# print(web_search.invoke(" Impact of ai on jobs in 2026 "))
      
 @tool # we dont need this much big code, we can reduce code for understanding. it's ai given code
 def scrape_url(url: str) -> str:

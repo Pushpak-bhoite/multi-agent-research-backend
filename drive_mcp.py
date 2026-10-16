@@ -1,50 +1,65 @@
 
-import asyncio
+# drive_mcp.py
+
 import json
-import os
-
-from dotenv import load_dotenv
-from mcp import ClientSession
-from mcp.client.streamable_http import streamable_http_client
-
-load_dotenv()
-
-DRIVE_MCP_URL = "https://drivemcp.googleapis.com/mcp/v1"
+import re
 
 
-def extract_text(result) -> str:
-    """Convert MCP text content into a string."""
-    parts = []
+def extract_result(result) -> dict:
+    """Parse the response returned by an MCP tool."""
 
-    for item in result.content:
-        if hasattr(item, "text"):
-            parts.append(item.text)
+    structured = getattr(result, "structuredContent", None)
+    if structured:
+        return structured
 
-    return "\n".join(parts)
+    for item in getattr(result, "content", []):
+        text = getattr(item, "text", None)
+        if text:
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                continue
+
+    raise RuntimeError(f"Could not parse MCP result: {result}")
 
 
-async def search_drive_files(session, topic: str) -> list[dict]:
-    # Escape apostrophes for the Drive search query.
-    safe_topic = topic.replace("\\", "\\\\").replace("'", "\\'")
+def report_filename(topic: str) -> str:
+    """Build a consistent filename from a research topic."""
+
+    safe_topic = re.sub(r'[\\/*?:"<>|]', "", topic).strip()
+    return f"Research - {safe_topic}.txt"
+
+
+async def find_existing_report(session, topic: str):
+    """Return matching report metadata, or None if no report exists."""
+
+    filename = report_filename(topic)
+    escaped_filename = filename.replace("\\", "\\\\").replace("'", "\\'")
 
     result = await session.call_tool(
         "search_files",
         arguments={
-            "query": f"fullText contains '{safe_topic}'",
-            "pageSize": 5,
+            "query": f"title = '{escaped_filename}'",
+            "pageSize": 10,
+            "excludeContentSnippets": True,
         },
     )
 
     if result.isError:
-        raise RuntimeError(extract_text(result))
+        raise RuntimeError(f"Drive search failed: {result.content}")
 
-    raw = extract_text(result)
-    data = json.loads(raw)
+    data = extract_result(result)
 
-    return data.get("files", [])
+    for file in data.get("files", []):
+        if file.get("title") == filename:
+            return file
+
+    return None
 
 
-async def read_drive_file(session, file_id: str) -> str:
+async def read_existing_report(session, file_id: str) -> str:
+    """Read the report's contents from Google Drive."""
+
     result = await session.call_tool(
         "read_file_content",
         arguments={
@@ -54,62 +69,39 @@ async def read_drive_file(session, file_id: str) -> str:
     )
 
     if result.isError:
-        raise RuntimeError(extract_text(result))
+        raise RuntimeError(f"Reading the Drive report failed: {result.content}")
 
-    raw = extract_text(result)
+    data = extract_result(result)
+    content = data.get("fileContent", "")
 
-    try:
-        data = json.loads(raw)
-        return data.get("fileContent", raw)
-    except json.JSONDecodeError:
-        return raw
-
-
-async def search_and_read_drive(topic: str) -> str:
-    token = os.getenv("GOOGLE_DRIVE_ACCESS_TOKEN")
-
-    if not token:
+    if not content:
         raise RuntimeError(
-            "Set GOOGLE_DRIVE_ACCESS_TOKEN in your .env file"
+            "The report was found, but its content was empty or unavailable."
         )
 
-    async with streamable_http_client(
-        DRIVE_MCP_URL,
-        headers={"Authorization": f"Bearer {token}"},
-    ) as (read_stream, write_stream, _):
-        async with ClientSession(read_stream, write_stream) as session:
-            await session.initialize()
-
-            files = await search_drive_files(session, topic)
-
-            if not files:
-                return "No relevant Google Drive files found."
-
-            research_material = []
-
-            for file in files[:3]:
-                file_id = file.get("id")
-                title = file.get("title", "Untitled")
-
-                if not file_id:
-                    continue
-
-                content = await read_drive_file(session, file_id)
-
-                research_material.append(
-                    f"DOCUMENT: {title}\n"
-                    f"FILE ID: {file_id}\n"
-                    f"CONTENT:\n{content}"
-                )
-
-            return "\n\n".join(research_material)
+    return content
 
 
-def get_drive_research(topic: str) -> str:
-    """Synchronous wrapper for the existing pipeline."""
-    return asyncio.run(search_and_read_drive(topic))
+async def save_report(session, topic: str, report: str) -> dict:
+    """Create a text file containing the generated report in Drive."""
 
+    result = await session.call_tool(
+        "create_file",
+        arguments={
+            "title": report_filename(topic),
+            "contentMimeType": "text/plain",
+            "textContent": report,
+            "disableConversionToGoogleType": True,
+        },
+    )
 
-if __name__ == "__main__":
-    topic = input("Enter a search topic: ")
-    print(get_drive_research(topic))
+    if result.isError:
+        raise RuntimeError(f"Saving the report failed: {result.content}")
+
+    data = extract_result(result)
+
+    return {
+        "file_id": data.get("id"),
+        "filename": data.get("title"),
+        "url": data.get("viewUrl"),
+    }

@@ -129,27 +129,29 @@ async def run_research_pipeline(topic: str, session) -> dict:
 
 # ===================================================================================
 
-import os
-
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
+from mcp.shared._httpx_utils import create_mcp_http_client
+
 from google_auth import get_access_token
 
+SERVER_URL = "https://drivemcp.googleapis.com/mcp/v1"
+
+
 async def main():
-    topic = input("Enter research topic: ").strip()
+    # topic = input("Enter research topic: ").strip()
+    topic = "Why WW2 started ?"
 
     access_token = get_access_token()
-    if not access_token:
-        raise RuntimeError(
-            "Set GOOGLE_ACCESS_TOKEN using your Google OAuth flow."
-        )
 
-    server_url = "https://drivemcp.googleapis.com/mcp/v1"
+    http_client = create_mcp_http_client(
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
 
-    async with streamablehttp_client(
-        server_url,
-        headers={"Authorization": f"Bearer {access_token}"},
-    ) as (read_stream, write_stream, _):
+    async with streamable_http_client(SERVER_URL, http_client=http_client) as (
+        read_stream,
+        write_stream,
+    ):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
 
@@ -157,10 +159,8 @@ async def main():
 
             print("\n========== REPORT ==========\n")
             print(result["report"])
-
             print("\nSource:", result["source"])
             print("Drive URL:", result.get("drive_url"))
-
 
 if __name__ == "__main__":
     asyncio.run(main())

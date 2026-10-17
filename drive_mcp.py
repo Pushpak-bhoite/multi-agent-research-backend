@@ -8,7 +8,7 @@ import re
 def extract_result(result) -> dict:
     """Parse the response returned by an MCP tool."""
 
-    structured = getattr(result, "structuredContent", None)
+    structured = getattr(result, "structured_content", None)
     if structured:
         return structured
 
@@ -45,7 +45,7 @@ async def find_existing_report(session, topic: str):
         },
     )
 
-    if result.isError:
+    if result.is_error:
         raise RuntimeError(f"Drive search failed: {result.content}")
 
     data = extract_result(result)
@@ -68,7 +68,7 @@ async def read_existing_report(session, file_id: str) -> str:
         },
     )
 
-    if result.isError:
+    if result.is_error:
         raise RuntimeError(f"Reading the Drive report failed: {result.content}")
 
     data = extract_result(result)
@@ -95,7 +95,7 @@ async def save_report(session, topic: str, report: str) -> dict:
         },
     )
 
-    if result.isError:
+    if result.is_error:
         raise RuntimeError(f"Saving the report failed: {result.content}")
 
     data = extract_result(result)

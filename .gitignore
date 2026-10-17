@@ -2,6 +2,10 @@
 .env
 .env.*
 !.env.example
+token.json
+credentials.json
+client_secret*.json
+NotionMCP/notion_oauth.json
 
 # Virtual environments
 .venv/

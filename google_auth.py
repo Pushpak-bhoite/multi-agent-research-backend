@@ -3,8 +3,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
+SCOPES = [
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/drive.file",
+]
 TOKEN_FILE = "token.json"
+
+# run_local_server can only emit "http://localhost:<port>/", so this must be registered verbatim.
+REDIRECT_PORT = 3030
 
 def get_access_token() -> str:
     """ we  need to run OAuth consent flow to access token """
@@ -28,7 +34,7 @@ def get_access_token() -> str:
             },
             SCOPES,
         )
-        creds = flow.run_local_server(port=0)
+        creds = flow.run_local_server(port=REDIRECT_PORT)
 
     with open(TOKEN_FILE, "w") as f:
         f.write(creds.to_json())

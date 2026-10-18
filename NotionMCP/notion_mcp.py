@@ -1,3 +1,4 @@
+import json
 import os
 import re
 
@@ -6,7 +7,12 @@ PARENT_PAGE_ID = "3fb66497f2ca809f95d0febf911e8e38"
 
 DEBUG = os.getenv("NOTION_MCP_DEBUG") == "1"
 
-_PAGE_URL = re.compile(r"https://www\.notion\.so/\S*?([0-9a-f]{32})")
+# Child pages appear in the parent's fetch text as <page url="...">Title</page>.
+_CHILD_PAGE = re.compile(r'<page url="([^"]+)"[^>]*>([^<\n]*)</page>')
+_CONTENT_BLOCK = re.compile(r"<content>\n?(.*?)\n?</content>", re.DOTALL)
+_HEX_ID = re.compile(
+    r"([0-9a-fA-F]{32})|([0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})"
+)
 
 
 def report_title(topic: str) -> str:
@@ -15,24 +21,6 @@ def report_title(topic: str) -> str:
 
 def _normalise(text: str) -> str:
     return " ".join(text.split()).casefold()
-
-
-def _locate(body: str, title: str) -> dict | None:
-    """Find the line mentioning `title` and the page URL nearest to it."""
-    wanted = _normalise(title)
-    lines = body.splitlines()
-
-    for index, line in enumerate(lines):
-        if wanted not in _normalise(line):
-            continue
-
-        # The URL may sit on the matching line or just after it.
-        window = "\n".join(lines[index : index + 3])
-        match = _PAGE_URL.search(window)
-        if match:
-            return {"title": title, "id": match.group(1), "url": match.group(0)}
-
-    return None
 
 
 def _result_text(result) -> str:
@@ -48,57 +36,84 @@ def _failed(result) -> bool:
     return bool(getattr(result, "isError", False) or getattr(result, "is_error", False))
 
 
+def _payload(result) -> dict:
+    """Notion MCP wraps a JSON document inside the text content block."""
+    body = _result_text(result)
+
+    if DEBUG:
+        print("---- notion raw ----")
+        print(body)
+        print("---- end ----")
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        return {"text": body}
+
+    return data if isinstance(data, dict) else {"text": body}
+
+
+def _page_id(value: str | None) -> str | None:
+    """Normalise a page URL or dashed UUID to a bare 32-character id."""
+    if not value:
+        return None
+
+    match = _HEX_ID.search(value)
+    if not match:
+        return None
+
+    return (match.group(1) or match.group(2)).replace("-", "").lower()
+
+
 async def find_existing_report(session, topic: str) -> dict | None:
     """Return metadata for a previously saved report, or None.
 
-    Reads the parent page rather than searching, because Notion's search index
-    lags behind page creation by minutes.
+    Reads the parent page first, because Notion's search index lags behind page
+    creation by minutes.
     """
     title = report_title(topic)
+    wanted = _normalise(title)
 
     result = await session.call_tool("notion-fetch", {"id": PARENT_PAGE_ID})
 
     if _failed(result):
         raise RuntimeError(f"Reading the parent page failed: {_result_text(result)}")
 
-    body = _result_text(result)
+    for url, child_title in _CHILD_PAGE.findall(_payload(result).get("text", "")):
+        if _normalise(child_title) == wanted:
+            return {"title": child_title, "id": _page_id(url), "url": url}
 
-    if DEBUG:
-        print("---- notion-fetch(parent) raw ----")
-        print(body)
-        print("---- end ----")
-
-    hit = _locate(body, title)
-    if hit:
-        return hit
-
-    # Fallback: the report may live outside the parent page.
+    # Fallback: the report may have been moved out of the parent page.
     result = await session.call_tool(
         "notion-search",
-        {"query": title, "page_size": 10},
+        {"query": title, "query_type": "internal"},
     )
 
     if _failed(result):
         raise RuntimeError(f"Notion search failed: {_result_text(result)}")
 
-    body = _result_text(result)
+    for hit in _payload(result).get("results", []):
+        if _normalise(hit.get("title", "")) == wanted:
+            return {
+                "title": hit["title"],
+                "id": _page_id(hit.get("id") or hit.get("url")),
+                "url": hit.get("url"),
+            }
 
-    if DEBUG:
-        print("---- notion-search raw ----")
-        print(body)
-        print("---- end ----")
-
-    return _locate(body, title)
+    return None
 
 
 async def read_existing_report(session, page_id: str) -> str:
-    """Read a saved report's content as Markdown."""
+    """Read a saved report's body as Markdown."""
     result = await session.call_tool("notion-fetch", {"id": page_id})
 
     if _failed(result):
         raise RuntimeError(f"Reading the Notion report failed: {_result_text(result)}")
 
-    return _result_text(result)
+    text = _payload(result).get("text", "")
+    block = _CONTENT_BLOCK.search(text)
+
+    return block.group(1) if block else text
 
 
 async def save_report(session, topic: str, report) -> dict:
@@ -112,20 +127,17 @@ async def save_report(session, topic: str, report) -> dict:
             "pages": [
                 {"properties": {"title": report_title(topic)}, "content": content}
             ],
-            # Synchronous so the page URL is available immediately.
-            "allow_async": False,
         },
     )
 
     if _failed(result):
         raise RuntimeError(f"Saving the report to Notion failed: {_result_text(result)}")
 
-    body = _result_text(result)
-    match = _PAGE_URL.search(body)
+    pages = _payload(result).get("pages") or []
+    page = pages[0] if pages else {}
 
     return {
         "title": report_title(topic),
-        "id": match.group(1) if match else None,
-        "url": match.group(0) if match else None,
-        "raw": body,
+        "id": _page_id(page.get("id") or page.get("url")),
+        "url": page.get("url"),
     }

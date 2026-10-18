@@ -56,7 +56,6 @@ async def run_research_pipeline(topic: str, session) -> dict:
                       f"Search Results:\n{state['search_results'][:800]}"  # Only send first 800 chars becoz those only contains urls
                       )]
     })
-    print("\nreader_result:----------->\n", reader_result)
     state['scraped_content'] = _text(reader_result['messages'][-1])
 
     print("====================== step 3 - Writer is drafting the report ==================")
@@ -69,13 +68,11 @@ async def run_research_pipeline(topic: str, session) -> dict:
         "topic": topic,
         "research": research_combined
     })
-    print("\n Final Report ----------------->\n", state["report"])
 
     print("==================== step - 4 critic is reviewing the report ====================")
     state["feedback"] = critic_chain.invoke({
         "report": state['report']
     })
-    print("\n critic report-----------------> \n", state['feedback'])
 
     print("==================== step - 5 saving the report to Notion ==================")
     saved = await save_report(session, topic, state["report"])
@@ -83,10 +80,11 @@ async def run_research_pipeline(topic: str, session) -> dict:
     state["notion_url"] = saved["url"]
     print("Saved to Notion:", saved["url"])
 
+    
     return state  # returned so the API can send it to the frontend
 
 async def main():
-    topic = input("\n Please enter a research topic : ")
+    # topic = input("\n Please enter a research topic : ")
 
     http_client = create_mcp_http_client(auth=build_notion_auth())
 
@@ -97,7 +95,8 @@ async def main():
     ):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
-            await run_research_pipeline(topic, session)
+            result = await run_research_pipeline("why WW2 started ?", session)
+            print("result-->", result)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -26,3 +26,6 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# Notion OAuth tokens (local login - never commit)
+NotionMCP/notion_oauth.json

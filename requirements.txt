@@ -90,3 +90,6 @@ mcp[cli]==2.3.0
 
 # OAuth 2.0 consent flow for Google Drive access tokens
 google-auth-oauthlib==1.2.2
+
+# Google Drive REST client used by the local Drive MCP server
+google-api-python-client==2.201.0

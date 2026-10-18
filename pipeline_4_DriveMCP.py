@@ -11,7 +11,7 @@ from agents import (
     critic_chain,
 )
 
-from drive_mcp import (
+from DriveMCP.drive_mcp import (
     find_existing_report,
     read_existing_report,
     save_report,
@@ -129,29 +129,31 @@ async def run_research_pipeline(topic: str, session) -> dict:
 
 # ===================================================================================
 
-from mcp import ClientSession
-from mcp.client.streamable_http import streamable_http_client
-from mcp.shared._httpx_utils import create_mcp_http_client
+import sys
+from pathlib import Path
 
-from google_auth import get_access_token
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
-SERVER_URL = "https://drivemcp.googleapis.com/mcp/v1"
+from google_auth import load_credentials
+
+SERVER_SCRIPT = Path(__file__).resolve().parent / "DriveMCP" / "drive_mcp_server.py"
 
 
 async def main():
     # topic = input("Enter research topic: ").strip()
     topic = "Why WW2 started ?"
 
-    access_token = get_access_token()
+    # Done here (not in the server) so the browser consent flow never collides
+    # with the server's stdio transport.
+    load_credentials()
 
-    http_client = create_mcp_http_client(
-        headers={"Authorization": f"Bearer {access_token}"}
+    server = StdioServerParameters(
+        command=sys.executable,
+        args=[str(SERVER_SCRIPT)],
     )
 
-    async with streamable_http_client(SERVER_URL, http_client=http_client) as (
-        read_stream,
-        write_stream,
-    ):
+    async with stdio_client(server) as (read_stream, write_stream):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
 

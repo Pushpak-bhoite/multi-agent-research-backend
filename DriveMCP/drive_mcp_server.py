@@ -17,7 +17,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from mcp.server.fastmcp import FastMCP
 
-from google_auth import TOKEN_FILE, load_credentials
+from google_auth import load_credentials
 
 mcp = FastMCP("local-drive")
 
@@ -28,6 +28,9 @@ GOOGLE_EXPORT_MIME = {
     "application/vnd.google-apps.presentation": "text/plain",
 }
 
+# Required on every v3 call that may touch a Shared Drive.
+SHARED_DRIVE_ARGS = {"supportsAllDrives": True}
+
 _service = None
 
 
@@ -35,12 +38,6 @@ def _drive():
     global _service
 
     if _service is None:
-        if not os.path.exists(TOKEN_FILE):
-            raise RuntimeError(
-                f"{TOKEN_FILE} not found. Run `python google_auth.py` once to "
-                "complete the OAuth consent flow before starting this server."
-            )
-
         _service = build(
             "drive",
             "v3",
@@ -84,6 +81,8 @@ def search_files(
             pageSize=pageSize,
             fields="files(id, name, mimeType, webViewLink, modifiedTime)",
             spaces="drive",
+            includeItemsFromAllDrives=True,
+            **SHARED_DRIVE_ARGS,
         )
         .execute()
     )
@@ -97,7 +96,11 @@ def read_file_content(fileId: str, includeComments: bool = False) -> dict:
 
     service = _drive()
 
-    meta = service.files().get(fileId=fileId, fields="id, name, mimeType").execute()
+    meta = (
+        service.files()
+        .get(fileId=fileId, fields="id, name, mimeType", **SHARED_DRIVE_ARGS)
+        .execute()
+    )
     mime_type = meta.get("mimeType", "")
 
     if mime_type in GOOGLE_EXPORT_MIME:
@@ -106,7 +109,7 @@ def read_file_content(fileId: str, includeComments: bool = False) -> dict:
             mimeType=GOOGLE_EXPORT_MIME[mime_type],
         ).execute()
     else:
-        data = service.files().get_media(fileId=fileId).execute()
+        data = service.files().get_media(fileId=fileId, **SHARED_DRIVE_ARGS).execute()
 
     content = data.decode("utf-8", errors="replace") if isinstance(data, bytes) else str(data)
 
@@ -132,6 +135,14 @@ def create_file(
     folder_id = os.environ.get("GOOGLE_DRIVE_FOLDER_ID")
     if folder_id:
         metadata["parents"] = [folder_id]
+    elif os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or os.environ.get(
+        "GOOGLE_SERVICE_ACCOUNT_FILE"
+    ):
+        # A service account has no My Drive storage quota of its own.
+        raise RuntimeError(
+            "GOOGLE_DRIVE_FOLDER_ID is required when using a service account. "
+            "Point it at a Shared Drive folder the service account can write to."
+        )
 
     if not disableConversionToGoogleType and contentMimeType == "text/plain":
         metadata["mimeType"] = "application/vnd.google-apps.document"
@@ -149,6 +160,7 @@ def create_file(
             body=metadata,
             media_body=media,
             fields="id, name, mimeType, webViewLink, modifiedTime",
+            **SHARED_DRIVE_ARGS,
         )
         .execute()
     )

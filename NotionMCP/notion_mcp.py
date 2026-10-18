@@ -30,7 +30,6 @@ def _result_text(result) -> str:
         if (text := getattr(item, "text", None))
     )
 
-
 def _failed(result) -> bool:
     # Attribute spelling differs between mcp SDK versions.
     return bool(getattr(result, "isError", False) or getattr(result, "is_error", False))

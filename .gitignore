@@ -29,3 +29,7 @@ dist/
 
 # Notion OAuth tokens (local login - never commit)
 NotionMCP/notion_oauth.json
+
+# Google Drive OAuth token + service account key (never commit)
+token.json
+service_account.json

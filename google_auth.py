@@ -1,8 +1,10 @@
+import json
 import os
 from pathlib import Path
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 
 SCOPES = [
@@ -17,8 +19,36 @@ TOKEN_FILE = str(Path(__file__).resolve().parent / "token.json")
 REDIRECT_PORT = 3030
 
 
-def load_credentials(interactive: bool = True) -> Credentials:
+def _service_account_credentials():
+    """Prod path: no browser, no refresh token. Returns None when unconfigured."""
+
+    raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+    path = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
+
+    if raw:
+        info = json.loads(raw)
+    elif path:
+        info = json.loads(Path(path).read_text())
+    else:
+        return None
+
+    creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+
+    # Only for Workspace domain-wide delegation; ignored otherwise.
+    subject = os.environ.get("GOOGLE_IMPERSONATE_USER")
+    if subject:
+        creds = creds.with_subject(subject)
+
+    return creds
+
+
+def load_credentials(interactive: bool = True):
     """Return usable Drive credentials, running the OAuth consent flow if needed."""
+
+    sa_creds = _service_account_credentials()
+    if sa_creds:
+        return sa_creds
+
     creds = None
 
     if os.path.exists(TOKEN_FILE):
@@ -32,7 +62,9 @@ def load_credentials(interactive: bool = True) -> Credentials:
     else:
         if not interactive:
             raise RuntimeError(
-                "No valid Google credentials. Run `python google_auth.py` first."
+                "No usable Google credentials. Either set "
+                "GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_SERVICE_ACCOUNT_FILE, or "
+                "run `python google_auth.py` once to create token.json."
             )
 
         flow = InstalledAppFlow.from_client_config(
@@ -64,5 +96,9 @@ def get_access_token() -> str:
 
 
 if __name__ == "__main__":
-    load_credentials()
-    print(f"Google Drive authorization complete. Token stored at {TOKEN_FILE}")
+    creds = load_credentials()
+
+    if isinstance(creds, service_account.Credentials):
+        print(f"Using service account: {creds.service_account_email}")
+    else:
+        print(f"Google Drive authorization complete. Token stored at {TOKEN_FILE}")
